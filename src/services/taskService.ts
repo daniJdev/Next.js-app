@@ -9,7 +9,6 @@ export interface Task {
   updatedAt?: string;
 }
 
-// Fetch all tasks
 export const fetchTasks = async (
   page = 1,
   limit = 10
@@ -22,7 +21,6 @@ export const fetchTasks = async (
   return response.data;
 };
 
-// Create a new task
 export const createTask = async (
   task: Omit<Task, "id" | "createdAt" | "updatedAt">
 ): Promise<Task> => {
@@ -30,7 +28,6 @@ export const createTask = async (
   return response.data;
 };
 
-// Update an existing task
 export const updateTask = async (
   id: number,
   task: Partial<Task>
@@ -39,7 +36,6 @@ export const updateTask = async (
   return response.data;
 };
 
-// Delete a task
 export const deleteTask = async (id: number): Promise<void> => {
   await api.delete(`/tasks/${id}`);
 };

@@ -1,7 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createTask, updateTask } from '@/services/taskService'; // Add both API calls
+import { createTask, updateTask } from '@/services/taskService';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+import useSnackbar from '@/hooks/useSnackbar';
+import ColorPicker from './ColorPicker';
 
 interface Task {
     id?: number;
@@ -13,17 +17,24 @@ interface Task {
 interface TaskCreationFormProps {
     setIsCreatingTask: (value: boolean) => void;
     refreshTasks: () => void;
-    editingTask?: Task | null; // Task being edited (if any)
+    editingTask?: Task | null;
 }
 
-const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ setIsCreatingTask, refreshTasks, editingTask }) => {
-    const colors = ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#A2845E'];
+const TaskCreationForm: React.FC<TaskCreationFormProps> = ({
+    setIsCreatingTask,
+    refreshTasks,
+    editingTask,
+}) => {
+    const colors = [
+        '#FF3B30', '#FF9500', '#FFCC00', '#34C759',
+        '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#A2845E',
+    ];
 
     const [title, setTitle] = useState('');
     const [selectedColor, setSelectedColor] = useState(colors[0]);
     const [isSaving, setIsSaving] = useState(false);
+    const { snackbarOpen, snackbarMessage, snackbarSeverity, showSnackbar, closeSnackbar } = useSnackbar();
 
-    // Pre-fill the form when editing a task
     useEffect(() => {
         if (editingTask) {
             setTitle(editingTask.title);
@@ -32,25 +43,29 @@ const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ setIsCreatingTask, 
     }, [editingTask]);
 
     const handleSaveTask = async () => {
-        if (!title.trim()) return alert('Title is required');
-        try {
-            setIsSaving(true);
+        if (!title.trim()) {
+            showSnackbar('Title is required', 'error');
+            return;
+        }
 
+        setIsSaving(true);
+
+        try {
             if (editingTask) {
-                // Update existing task
                 await updateTask(editingTask.id as number, { title, color: selectedColor });
-                alert('Task updated successfully!');
+                showSnackbar('Task updated successfully!', 'success');
             } else {
-                // Create new task
                 await createTask({ title, color: selectedColor, completed: false });
-                alert('Task created successfully!');
+                showSnackbar('Task created successfully!', 'success');
             }
 
-            refreshTasks(); // Refresh the task list
-            setIsCreatingTask(false); // Navigate back to task list
+            setTimeout(() => {
+                refreshTasks();
+                setIsCreatingTask(false);
+            }, 3000);
         } catch (error) {
             console.error('Error saving task:', error);
-            alert('Failed to save task. Please try again.');
+            showSnackbar('Failed to save task. Please try again.', 'error');
         } finally {
             setIsSaving(false);
         }
@@ -58,7 +73,6 @@ const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ setIsCreatingTask, 
 
     return (
         <div className="p-6 rounded-lg shadow-lg">
-            {/* Back Button */}
             <button
                 onClick={() => setIsCreatingTask(false)}
                 className="text-white mb-4 flex items-center gap-2"
@@ -66,7 +80,6 @@ const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ setIsCreatingTask, 
                 <img src="/assets/icons/arrow-left.svg" alt="Back" className="h-5 w-5" />
             </button>
 
-            {/* Title Input */}
             <h2 className="text-[#4EA8DE] font-bold mb-4">Title</h2>
             <input
                 type="text"
@@ -76,29 +89,27 @@ const TaskCreationForm: React.FC<TaskCreationFormProps> = ({ setIsCreatingTask, 
                 className="w-full p-2 mb-6 rounded bg-[#333333] text-white focus:outline-none focus:ring focus:ring-[#4EA8DE]"
             />
 
-            {/* Color Selection */}
             <h2 className="text-[#4EA8DE] font-bold mb-4">Color</h2>
-            <div className="flex gap-4">
-                {colors.map((color) => (
-                    <button
-                        key={color}
-                        onClick={() => setSelectedColor(color)}
-                        className={`h-10 w-10 rounded-full border-2 ${selectedColor === color ? 'border-white' : 'border-transparent'
-                            } transition-all duration-300`}
-                        style={{ backgroundColor: color }}
-                    ></button>
-                ))}
-            </div>
+            <ColorPicker colors={colors} selectedColor={selectedColor} onSelect={setSelectedColor} />
 
-            {/* Save/Update Task Button */}
             <button
                 onClick={handleSaveTask}
                 disabled={isSaving}
-                className={`mt-6 w-full py-2 ${isSaving ? 'bg-gray-400' : 'bg-[#1E6F9F] hover:bg-[#145E7C]'
-                    } text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all duration-300`}
+                className={`mt-6 w-full py-2 ${isSaving ? 'bg-gray-400' : 'bg-[#1E6F9F] hover:bg-[#145E7C]'} text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all duration-300`}
             >
                 {isSaving ? 'Saving...' : editingTask ? 'Update Task' : 'Add Task'}
             </button>
+
+            <Snackbar
+                open={snackbarOpen}
+                autoHideDuration={3000}
+                onClose={closeSnackbar}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert onClose={closeSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
+                    {snackbarMessage}
+                </Alert>
+            </Snackbar>
         </div>
     );
 };
